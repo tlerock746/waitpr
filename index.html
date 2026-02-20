@@ -290,6 +290,7 @@
                 const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
                 let name = 'ไม่ระบุชื่อ', code = 'xxxx', date = '';
 
+                // 1. หา Link และรหัสบ้าน
                 for (const l of lines) {
                     if (l.includes('http')) {
                         const parts = l.replace(/\/+$/, '').split('/');
@@ -299,12 +300,37 @@
                     }
                 }
 
+                // 2. หาวันที่
                 for (const l of lines)
                     if (l.includes('วัน') && l.includes('ออก') && l.includes('คืน')) { date = l; break; }
 
+                // 3. หาชื่อบ้าน
+                let nameFound = false;
                 for (let i = 0; i < lines.length; i++) {
-                    if (lines[i].includes('ห้องนอน')) { if (i > 0) name = lines[i - 1]; break; }
-                    else if (i === 0 && !lines[i].includes('http') && !lines[i].includes('รายละเอียด')) name = lines[i];
+                    if (lines[i].includes('ห้องนอน')) {
+                        if (i > 0) {
+                            // ชื่อบ้านอยู่บรรทัดก่อนหน้า
+                            name = lines[i - 1];
+                        } else {
+                            // "ห้องนอน" อยู่ในบรรทัดแรก เช่น "BB Beach Jomtien 12 ห้องนอน"
+                            // ดึงชื่อจากส่วนที่อยู่ก่อนตัวเลข+ห้องนอน
+                            const match = lines[i].match(/^(.+?)\s+\d+\s*ห้องนอน/);
+                            if (match && match[1].trim()) {
+                                name = match[1].trim();
+                            } else {
+                                name = lines[i];
+                            }
+                        }
+                        nameFound = true;
+                        break;
+                    }
+                }
+
+                // ถ้ายังไม่เจอชื่อบ้าน ใช้บรรทัดแรกที่ไม่ใช่ link/รายละเอียด
+                if (!nameFound && lines.length > 0) {
+                    if (!lines[0].includes('http') && !lines[0].includes('รายละเอียด')) {
+                        name = lines[0];
+                    }
                 }
 
                 const src = document.getElementById('source').value;
