@@ -263,7 +263,7 @@
     </div>
 
     <script>
-        function status(msg, type) {
+        function setStatus(msg, type) {
             const el = document.getElementById('status');
             el.textContent = msg;
             el.className = 'status' + (type ? ' ' + type : '');
@@ -282,68 +282,66 @@
             return false;
         }
 
+        // --- Smart Parser ---
+
+        function isUrlLine(line) {
+            return /https?:\/\//i.test(line);
+        }
+
+        function isDetailLine(line) {
+            // บรรทัดที่เป็นรายละเอียด ไม่ใช่ชื่อบ้าน
+            return /^(ราคา|ห่างทะเล|รายละเอียด|\d+\s*ห้องนอน)/i.test(line)
+                || /วัน\s.*ออก\s/.test(line);
+        }
+
+        function extractHouseCode(lines) {
+            // หารหัสบ้านจาก URL — เอาตัวเลขชุดสุดท้ายใน path
+            for (const line of lines) {
+                if (isUrlLine(line)) {
+                    const parts = line.trim().replace(/\/+$/, '').split('/');
+                    for (let i = parts.length - 1; i >= 0; i--) {
+                        if (/^\d+$/.test(parts[i])) return parts[i];
+                    }
+                }
+            }
+            return 'xxxx';
+        }
+
+        function extractDate(lines) {
+            // หาวันที่ — ต้องมี "วัน" + "ออก"
+            for (const line of lines) {
+                if (line.includes('วัน') && line.includes('ออก')) return line;
+            }
+            return '';
+        }
+
+        function extractHouseName(lines) {
+            // ชื่อบ้านจะอยู่บรรทัดแรกเสมอ
+            return lines.length > 0 ? lines[0] : 'ไม่ระบุชื่อ';
+        }
+
         function process() {
             const raw = document.getElementById('input').value.trim();
-            if (!raw) { status('กรุณาวางข้อมูลก่อน', 'warn'); return; }
+            if (!raw) { setStatus('กรุณาวางข้อมูลก่อน', 'warn'); return; }
 
             try {
                 const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
-                let name = 'ไม่ระบุชื่อ', code = 'xxxx', date = '';
 
-                // 1. หา Link และรหัสบ้าน
-                for (const l of lines) {
-                    if (l.includes('http')) {
-                        const parts = l.replace(/\/+$/, '').split('/');
-                        for (let i = parts.length - 1; i >= 0; i--)
-                            if (/^\d+$/.test(parts[i])) { code = parts[i]; break; }
-                        break;
-                    }
-                }
-
-                // 2. หาวันที่
-                for (const l of lines)
-                    if (l.includes('วัน') && l.includes('ออก') && l.includes('คืน')) { date = l; break; }
-
-                // 3. หาชื่อบ้าน
-                let nameFound = false;
-                for (let i = 0; i < lines.length; i++) {
-                    if (lines[i].includes('ห้องนอน')) {
-                        if (i > 0) {
-                            // ชื่อบ้านอยู่บรรทัดก่อนหน้า
-                            name = lines[i - 1];
-                        } else {
-                            // "ห้องนอน" อยู่ในบรรทัดแรก เช่น "BB Beach Jomtien 12 ห้องนอน"
-                            // ดึงชื่อจากส่วนที่อยู่ก่อนตัวเลข+ห้องนอน
-                            const match = lines[i].match(/^(.+?)\s+\d+\s*ห้องนอน/);
-                            if (match && match[1].trim()) {
-                                name = match[1].trim();
-                            } else {
-                                name = lines[i];
-                            }
-                        }
-                        nameFound = true;
-                        break;
-                    }
-                }
-
-                // ถ้ายังไม่เจอชื่อบ้าน ใช้บรรทัดแรกที่ไม่ใช่ link/รายละเอียด
-                if (!nameFound && lines.length > 0) {
-                    if (!lines[0].includes('http') && !lines[0].includes('รายละเอียด')) {
-                        name = lines[0];
-                    }
-                }
-
+                const name = extractHouseName(lines);
+                const code = extractHouseCode(lines);
+                const date = extractDate(lines);
                 const src = document.getElementById('source').value;
+
                 const result = `รอโอนบ้าน ${name} (${code})\n${date} ${src}ครับ`;
 
                 document.getElementById('output').textContent = result;
 
                 clip(result).then(ok => {
-                    if (ok) status('✓ คัดลอกเรียบร้อย', 'ok');
-                    else status('สร้างแล้ว กดปุ่มคัดลอกเอง', 'warn');
+                    if (ok) setStatus('✓ คัดลอกเรียบร้อย', 'ok');
+                    else setStatus('สร้างแล้ว กดปุ่มคัดลอกเอง', 'warn');
                 });
 
-            } catch (e) { status('เกิดข้อผิดพลาด: ' + e.message, 'err'); }
+            } catch (e) { setStatus('เกิดข้อผิดพลาด: ' + e.message, 'err'); }
         }
 
         function copyResult() {
