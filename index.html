@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบสร้างข้อความรอโอน</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans Thai', sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 32px 16px;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 500px;
+        }
+
+        h1 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #111;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+            border: 1px solid #e8e8e8;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: #666;
+            margin-bottom: 6px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 150px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'Noto Sans Thai', sans-serif;
+            font-size: 14px;
+            color: #333;
+            background: #fafafa;
+            resize: vertical;
+            transition: border-color 0.2s;
+            line-height: 1.6;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #999;
+            background: #fff;
+        }
+
+        textarea::placeholder {
+            color: #bbb;
+        }
+
+        .row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 16px 0;
+        }
+
+        .row label {
+            margin-bottom: 0;
+            white-space: nowrap;
+        }
+
+        select {
+            flex: 1;
+            padding: 9px 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-family: 'Noto Sans Thai', sans-serif;
+            font-size: 14px;
+            color: #333;
+            background: #fafafa;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #999;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: #111;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Noto Sans Thai', sans-serif;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin: 16px 0;
+        }
+
+        .btn:hover {
+            background: #333;
+        }
+
+        .btn:active {
+            background: #000;
+        }
+
+        .output-wrap {
+            position: relative;
+        }
+
+        .output {
+            width: 100%;
+            min-height: 60px;
+            background: #fafafa;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 14px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: #333;
+            cursor: text;
+            user-select: all;
+        }
+
+        .output:empty::before {
+            content: '—';
+            color: #ccc;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #eee;
+            color: #555;
+            border: none;
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-family: 'Noto Sans Thai', sans-serif;
+            font-size: 12px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .output-wrap:hover .copy-btn {
+            opacity: 1;
+        }
+
+        .copy-btn:hover {
+            background: #ddd;
+        }
+
+        .copy-btn.done {
+            background: #d4edda;
+            color: #155724;
+            opacity: 1;
+        }
+
+        .status {
+            text-align: center;
+            font-size: 13px;
+            color: #999;
+            margin-top: 14px;
+            min-height: 20px;
+            transition: color 0.3s;
+        }
+
+        .status.ok {
+            color: #2e7d32;
+        }
+
+        .status.warn {
+            color: #e65100;
+        }
+
+        .status.err {
+            color: #c62828;
+        }
+
+        .sep {
+            height: 1px;
+            background: #eee;
+            margin: 16px 0;
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 16px 10px;
+            }
+
+            .card {
+                padding: 18px;
+            }
+
+            .row {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 6px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+        <h1>ระบบสร้างข้อความรอโอน</h1>
+        <div class="card">
+            <label>วางข้อมูลที่พัก</label>
+            <textarea id="input" placeholder="วางข้อมูลที่พักจากเว็บไซต์ที่นี่..."></textarea>
+
+            <div class="row">
+                <label>ช่องทาง</label>
+                <select id="source">
+                    <option>ไลน์พี่หมี</option>
+                    <option>เพจพี่หมี</option>
+                    <option>ไลน์พูล</option>
+                    <option>เพจพูล</option>
+                    <option>ไลน์ปาร์ตี้</option>
+                    <option>เพจปาร์ตี้</option>
+                </select>
+            </div>
+
+            <button class="btn" onclick="process()">แปลงข้อมูล & คัดลอก</button>
+
+            <div class="sep"></div>
+
+            <label>ผลลัพธ์</label>
+            <div class="output-wrap">
+                <div class="output" id="output"></div>
+                <button class="copy-btn" id="copyBtn" onclick="copyResult()">คัดลอก</button>
+            </div>
+
+            <div class="status" id="status">พร้อมใช้งาน</div>
+        </div>
+    </div>
+
+    <script>
+        function status(msg, type) {
+            const el = document.getElementById('status');
+            el.textContent = msg;
+            el.className = 'status' + (type ? ' ' + type : '');
+            if (type === 'ok' || type === 'warn')
+                setTimeout(() => { el.textContent = 'พร้อมใช้งาน'; el.className = 'status'; }, 3000);
+        }
+
+        async function clip(text) {
+            try { await navigator.clipboard.writeText(text); return true; } catch (e) { }
+            try {
+                const t = document.createElement('textarea');
+                t.value = text; t.style.cssText = 'position:fixed;left:-9999px';
+                document.body.appendChild(t); t.select(); document.execCommand('copy');
+                document.body.removeChild(t); return true;
+            } catch (e) { }
+            return false;
+        }
+
+        function process() {
+            const raw = document.getElementById('input').value.trim();
+            if (!raw) { status('กรุณาวางข้อมูลก่อน', 'warn'); return; }
+
+            try {
+                const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+                let name = 'ไม่ระบุชื่อ', code = 'xxxx', date = '';
+
+                for (const l of lines) {
+                    if (l.includes('http')) {
+                        const parts = l.replace(/\/+$/, '').split('/');
+                        for (let i = parts.length - 1; i >= 0; i--)
+                            if (/^\d+$/.test(parts[i])) { code = parts[i]; break; }
+                        break;
+                    }
+                }
+
+                for (const l of lines)
+                    if (l.includes('วัน') && l.includes('ออก') && l.includes('คืน')) { date = l; break; }
+
+                for (let i = 0; i < lines.length; i++) {
+                    if (lines[i].includes('ห้องนอน')) { if (i > 0) name = lines[i - 1]; break; }
+                    else if (i === 0 && !lines[i].includes('http') && !lines[i].includes('รายละเอียด')) name = lines[i];
+                }
+
+                const src = document.getElementById('source').value;
+                const result = `รอโอนบ้าน ${name} (${code})\n${date} ${src}ครับ`;
+
+                document.getElementById('output').textContent = result;
+
+                clip(result).then(ok => {
+                    if (ok) status('✓ คัดลอกเรียบร้อย', 'ok');
+                    else status('สร้างแล้ว กดปุ่มคัดลอกเอง', 'warn');
+                });
+
+            } catch (e) { status('เกิดข้อผิดพลาด: ' + e.message, 'err'); }
+        }
+
+        function copyResult() {
+            const text = document.getElementById('output').textContent;
+            if (!text) return;
+            clip(text).then(ok => {
+                if (ok) {
+                    const b = document.getElementById('copyBtn');
+                    b.textContent = '✓'; b.classList.add('done');
+                    setTimeout(() => { b.textContent = 'คัดลอก'; b.classList.remove('done'); }, 1500);
+                }
+            });
+        }
+
+        document.getElementById('input').addEventListener('keydown', e => {
+            if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); process(); }
+        });
+    </script>
+</body>
+
+</html>
